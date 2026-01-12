@@ -1,21 +1,6 @@
 import React, { useEffect, useState } from 'react';
-
-const StatBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
-  <div className="mb-4">
-    <div className="flex justify-between mb-1">
-      <span className="font-mono text-xs uppercase tracking-wider font-bold text-gray-500">{label}</span>
-      <span className="font-mono text-xs font-bold text-dark">{value}%</span>
-    </div>
-    <div className="h-2 w-full bg-gray-100 rounded-sm overflow-hidden border border-gray-200">
-      <div 
-        className="h-full rounded-none relative overflow-hidden" 
-        style={{ width: `${value}%`, backgroundColor: color }}
-      >
-        <div className="absolute inset-0 bg-white/20 skew-x-12 w-full -translate-x-full animate-[shimmer_2s_infinite]"></div>
-      </div>
-    </div>
-  </div>
-);
+import { useContent } from './ContentContext';
+import { Layout, Palette, Gamepad2, ChevronRight, PenTool, Cpu, Eye } from 'lucide-react';
 
 const About: React.FC = () => {
   const [offset, setOffset] = useState(0);
@@ -32,7 +17,7 @@ const About: React.FC = () => {
     <section id="about" className="relative py-32 bg-white overflow-hidden">
       {/* Decorative Section Number with Parallax */}
       <div 
-        className="absolute top-20 right-6 md:right-20 pointer-events-none opacity-10 transition-transform duration-100 ease-out"
+        className="absolute top-0 right-6 md:right-20 pointer-events-none opacity-10 transition-transform duration-100 ease-out"
         style={{ transform: `translateY(${offset * 0.1}px)` }}
       >
         <span className="font-heading font-black text-9xl md:text-[12rem] text-dark stroke-text">01</span>
@@ -75,23 +60,51 @@ const About: React.FC = () => {
                    STATS & EQUIPMENT
                 </h3>
 
-                <div className="space-y-6">
-                   <div>
-                      <h4 className="font-bold text-sm mb-3 text-dark font-mono bg-gray-100 inline-block px-2">CORE ATTRIBUTES</h4>
-                      <StatBar label="UI/UX Design" value={90} color="#fa5c5c" />
-                      <StatBar label="Visual Design" value={85} color="#fd8a6b" />
-                      <StatBar label="Game Logic" value={75} color="#fbef76" />
-                   </div>
-
-                   <div className="pt-4">
-                      <h4 className="font-bold text-sm mb-3 text-dark font-mono bg-gray-100 inline-block px-2">INVENTORY</h4>
-                      <div className="flex flex-wrap gap-2">
-                         {['Figma', 'Unity', 'Photoshop', 'Notion', 'C#'].map(tool => (
-                            <span key={tool} className="px-2 py-1 bg-white border border-gray-300 text-xs font-mono font-bold text-gray-600 hover:bg-dark hover:text-white transition-colors cursor-default">
-                               {tool}
-                            </span>
-                         ))}
+                <div className="space-y-4 mb-8">
+                   <h4 className="font-bold text-sm mb-2 text-dark font-mono bg-gray-100 inline-block px-2">CORE ATTRIBUTES</h4>
+                   
+                   {/* UI Update: List with Icons */}
+                   <div className="space-y-3">
+                      <div className="flex items-center gap-4 p-3 bg-gray-50 border border-gray-100 rounded-md hover:border-primary/50 transition-colors group">
+                          <div className="p-2 bg-white border border-gray-200 rounded text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                              <Layout size={20} strokeWidth={2} />
+                          </div>
+                          <div className="flex flex-col">
+                              <span className="font-bold text-dark text-sm leading-tight">UI/UX Design</span>
+                              <span className="text-[10px] text-gray-400 font-mono tracking-wider">LVL. MASTER</span>
+                          </div>
                       </div>
+
+                      <div className="flex items-center gap-4 p-3 bg-gray-50 border border-gray-100 rounded-md hover:border-secondary/50 transition-colors group">
+                          <div className="p-2 bg-white border border-gray-200 rounded text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
+                              <Eye size={20} strokeWidth={2} />
+                          </div>
+                          <div className="flex flex-col">
+                              <span className="font-bold text-dark text-sm leading-tight">Visual Design</span>
+                              <span className="text-[10px] text-gray-400 font-mono tracking-wider">LVL. ADVANCED</span>
+                          </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 p-3 bg-gray-50 border border-gray-100 rounded-md hover:border-accent/50 transition-colors group">
+                          <div className="p-2 bg-white border border-gray-200 rounded text-accent group-hover:bg-accent group-hover:text-dark transition-colors">
+                              <Cpu size={20} strokeWidth={2} />
+                          </div>
+                          <div className="flex flex-col">
+                              <span className="font-bold text-dark text-sm leading-tight">Game Logic</span>
+                              <span className="text-[10px] text-gray-400 font-mono tracking-wider">LVL. EXPERT</span>
+                          </div>
+                      </div>
+                   </div>
+                </div>
+
+                <div>
+                   <h4 className="font-bold text-sm mb-3 text-dark font-mono bg-gray-100 inline-block px-2">INVENTORY</h4>
+                   <div className="flex flex-wrap gap-2">
+                      {['Figma', 'Unity', 'Photoshop', 'Notion', 'C#'].map(tool => (
+                         <span key={tool} className="px-2 py-1 bg-white border border-gray-300 text-xs font-mono font-bold text-gray-600 hover:bg-dark hover:text-white transition-colors cursor-default">
+                            {tool}
+                         </span>
+                      ))}
                    </div>
                 </div>
 

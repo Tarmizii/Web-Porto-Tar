@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
+import { ContentProvider } from './components/ContentContext';
 import Hero from './components/Hero';
 import About from './components/About';
 import Services from './components/Services';
 import Portfolio from './components/Portfolio';
 import Contact from './components/Contact';
 import CaseStudy from './components/CaseStudy';
+import Admin from './components/Admin';
 import { CONTACT_INFO } from './constants';
 
 const ScrollProgress = () => {
@@ -103,15 +105,18 @@ const ScrollToTop = () => {
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <ScrollToTop />
-      <div className="font-sans text-dark antialiased bg-white">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/project/:id" element={<CaseStudy />} />
-        </Routes>
-      </div>
-    </Router>
+    <ContentProvider>
+      <Router>
+        <ScrollToTop />
+        <div className="font-sans text-dark antialiased bg-white">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/project/:id" element={<CaseStudy />} />
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+        </div>
+      </Router>
+    </ContentProvider>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SERVICES } from '../constants';
+import { useContent } from './ContentContext';
 import { Layout, Palette, Gamepad2, Zap } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -9,6 +9,7 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 const Services: React.FC = () => {
+  const { services } = useContent();
   const [activeMobileIndex, setActiveMobileIndex] = useState<number | null>(null);
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
   const [offset, setOffset] = useState(0);
@@ -18,7 +19,6 @@ const Services: React.FC = () => {
   };
 
   const handleDesktopClick = (index: number) => {
-    // Allows clicking to toggle flip on desktop, useful if hover isn't preferred or for accessibility
     setFlippedIndex(flippedIndex === index ? null : index);
   };
 
@@ -54,11 +54,10 @@ const Services: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
-          {SERVICES.map((service, index) => (
+          {services.map((service, index) => (
             <div key={index} className="h-auto md:h-[420px] reveal-up" style={{ transitionDelay: `${index * 0.1}s` }}>
               
               {/* DESKTOP: Flip Card Panel */}
-              {/* We use a combination of group-hover and state to ensure interaction works reliably */}
               <div 
                 className="hidden md:block group w-full h-full perspective-1000 cursor-pointer"
                 onClick={() => handleDesktopClick(index)}
@@ -85,7 +84,6 @@ const Services: React.FC = () => {
 
                   {/* Back Side */}
                   <div className="absolute w-full h-full backface-hidden bg-white text-dark p-8 rotate-y-180 flex flex-col justify-center rounded-xl shadow-2xl border-4 border-accent relative overflow-hidden">
-                     {/* Tech decoration lines */}
                      <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
                      <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-primary"></div>
 
@@ -111,7 +109,6 @@ const Services: React.FC = () => {
               </div>
 
               {/* MOBILE: Accordion Panel */}
-              {/* Reduced height constraints and fixed padding for mobile */}
               <div className="md:hidden bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden shadow-lg">
                 <div 
                     className="flex justify-between items-center p-5 cursor-pointer active:bg-white/20 transition-colors"
