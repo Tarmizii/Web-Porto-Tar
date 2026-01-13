@@ -21,6 +21,28 @@ const Portfolio: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Effect to trigger animations for dynamic content
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+        const elements = document.querySelectorAll('#portfolio .reveal-up');
+        elements.forEach(el => observer.observe(el));
+    }, 100);
+
+    return () => {
+        clearTimeout(timer);
+        observer.disconnect();
+    };
+  }, [projects]);
+
   return (
     <section id="portfolio" className="relative py-32 bg-gray-50 overflow-hidden">
        {/* Section Number with Parallax */}

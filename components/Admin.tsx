@@ -5,7 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { Project } from '../types';
 
 const Admin: React.FC = () => {
-  const { projects, updateProjects } = useContent();
+  // --- STATE EXTENSIONS ---
+  const { projects, refreshProjects } = useContent();
+  const [alertInfo, setAlertInfo] = useState<{ message: string; type: 'success' | 'error' | null } | null>(null);
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -16,9 +19,9 @@ const Admin: React.FC = () => {
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null); // Track if editing or adding
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form State (Used for both Add and Edit)
+  // Form State
   const initialProjectState: Project = {
     id: '',
     title: '',
@@ -37,12 +40,33 @@ const Admin: React.FC = () => {
   };
   const [formData, setFormData] = useState<Project>(initialProjectState);
   
-  // Helper to manage Tools/Process input in Modal (comma/newline separation)
   const [toolsInput, setToolsInput] = useState('');
   const [processInput, setProcessInput] = useState('');
 
+  // --- AUTH CHECK ON MOUNT ---
+  React.useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error('Session check failed', err);
+      }
+    };
+    checkSession();
+  }, []);
+
+  // --- HELPER: SHOW ALERT ---
+  const showAlert = (message: string, type: 'success' | 'error') => {
+    setAlertInfo({ message, type });
+    setTimeout(() => setAlertInfo(null), 3000); // Auto dismiss
+  };
+
   // --- AUTHENTICATION ---
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
@@ -52,18 +76,26 @@ const Admin: React.FC = () => {
       return;
     }
 
-    // 2. Check Credentials
-    if ((username === 'admin' || username === 'admin@tarmizi.design') && password === 'admin123') {
-      // 3. Start Loading Transition
-      setIsLoading(true);
-      
-      setTimeout(() => {
+    // 2. Start Loading Transition
+    setIsLoading(true);
+
+    try {
+        const { supabase } = await import('../lib/supabaseClient');
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: username,
+            password: password,
+        });
+
+        if (error) throw error;
+
         setIsAuthenticated(true);
+    } catch (err: any) {
+        console.error('Login error:', err);
+        setLoginError(`ACCESS_DENIED: ${err.message || 'Invalid Credentials'}`);
+        setPassword('');
+    } finally {
         setIsLoading(false);
-      }, 1500); // 1.5s delay for effect
-    } else {
-      setLoginError('ACCESS_DENIED: Invalid Username or Security Code.');
-      setPassword(''); // Clear password on fail
     }
   };
 
@@ -93,43 +125,100 @@ const Admin: React.FC = () => {
   };
 
   // Save (Create or Update)
-  const handleSaveProject = () => {
+  const handleSaveProject = async () => {
     if (!formData.title || !formData.thumbnail) {
-        alert("System Error: Title and Thumbnail are required.");
+        showAlert("System Error: Title and Thumbnail are required.", 'error');
         return;
     }
 
-    const processedData = {
-        ...formData,
-        tools: toolsInput.split(',').map(t => t.trim()).filter(t => t !== ''),
-        process: processInput.split('\n').filter(p => p.trim() !== '')
-    };
+    try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const user = (await supabase.auth.getUser()).data.user;
+        
+        if (!user) {
+            showAlert("Authentication Error: You must be logged in.", 'error');
+            return;
+        }
 
-    if (editingId) {
-        // Update existing project
-        const updatedProjects = projects.map(p => p.id === editingId ? processedData : p);
-        updateProjects(updatedProjects);
-    } else {
-        // Create new project
-        updateProjects([processedData, ...projects]);
+        const projectPayload = {
+            title: formData.title,
+            description: formData.shortDescription,
+            category: formData.category,
+            image_url: formData.thumbnail,
+            user_id: user.id,
+            details: {
+                role: formData.role,
+                tools: toolsInput.split(',').map(t => t.trim()).filter(t => t !== ''),
+                fullDescription: formData.fullDescription,
+                background: formData.background,
+                problem: formData.problem,
+                process: processInput.split('\n').filter(p => p.trim() !== ''),
+                solution: formData.solution,
+                results: formData.results,
+                artifactLink: formData.artifactLink
+            }
+        };
+
+        let error;
+        
+        if (editingId && editingId.length === 36) {
+             const { error: err } = await supabase
+                .from('projects')
+                .update(projectPayload)
+                .eq('id', editingId);
+             error = err;
+        } else {
+             const { error: err } = await supabase
+                .from('projects')
+                .insert([projectPayload]);
+             error = err;
+        }
+
+        if (error) throw error;
+        
+        // Refresh context
+        showAlert("Success: Mission Data Saved.", 'success');
+        await refreshProjects();
+        closeModal();
+        
+    } catch (err: any) {
+        console.error('Error saving:', err);
+        showAlert(`Error: ${err.message}`, 'error');
     }
-
-    closeModal();
   };
 
   // Image Upload handler for the Form
-  const handleFormImageUpload = (file: File) => {
+  const handleFormImageUpload = async (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
-      alert("File too large. Please upload an image smaller than 2MB.");
+      showAlert("File too large. Please upload an image smaller than 2MB.", 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setFormData(prev => ({ ...prev, thumbnail: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
+
+    try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('project-assets')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            throw uploadError;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('project-assets')
+            .getPublicUrl(filePath);
+
+        setFormData(prev => ({ ...prev, thumbnail: publicUrl }));
+        showAlert("Image uploaded successfully!", 'success');
+        
+    } catch (error: any) {
+        console.error('Error uploading image:', error);
+        showAlert(`Upload failed: ${error.message}`, 'error');
+    }
   };
 
   // --- DELETE LOGIC ---
@@ -137,10 +226,24 @@ const Admin: React.FC = () => {
     setDeleteTargetId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteTargetId) {
-        const updated = projects.filter((p) => p.id !== deleteTargetId);
-        updateProjects(updated);
+        try {
+            const { supabase } = await import('../lib/supabaseClient');
+            
+            const { error } = await supabase
+                .from('projects')
+                .delete()
+                .eq('id', deleteTargetId);
+                
+            if (error) throw error;
+            
+            showAlert("Mission Deleted.", 'success');
+            await refreshProjects();
+        } catch (err: any) {
+            console.error('Error deleting:', err);
+            showAlert(`Delete failed: ${err.message}`, 'error');
+        }
         setDeleteTargetId(null);
     }
   };
@@ -231,6 +334,18 @@ const Admin: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-dark animate-fade-in pb-20 relative">
       
+      {/* Custom Alert */}
+      {alertInfo && (
+        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] px-6 py-4 rounded-lg shadow-2xl border flex items-center gap-3 animate-reveal-up ${
+            alertInfo.type === 'success' 
+            ? 'bg-green-100 border-green-500 text-green-800' 
+            : 'bg-red-100 border-red-500 text-red-800'
+        }`}>
+            {alertInfo.type === 'success' ? <Trophy size={20} /> : <AlertTriangle size={20} />}
+            <span className="font-bold text-sm tracking-wide uppercase">{alertInfo.message}</span>
+        </div>
+      )}
+
       {/* Admin Navbar */}
       <nav className="bg-dark text-white sticky top-0 z-40 shadow-md">
         <div className="container mx-auto px-6 h-16 flex justify-between items-center">
