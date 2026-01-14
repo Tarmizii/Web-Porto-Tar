@@ -18,6 +18,7 @@ const Admin: React.FC = () => {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCvModalOpen, setIsCvModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -42,6 +43,58 @@ const Admin: React.FC = () => {
   
   const [toolsInput, setToolsInput] = useState('');
   const [processInput, setProcessInput] = useState('');
+
+  // CV Upload Logic
+  const handleCvUpload = async (file: File) => {
+      if (file.type !== 'application/pdf') {
+          showAlert("Invalid File: Please upload a PDF.", 'error');
+          return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+          showAlert("File too large (Max 5MB).", 'error');
+          return;
+      }
+
+      try {
+          const { supabase } = await import('../lib/supabaseClient');
+          const user = (await supabase.auth.getUser()).data.user;
+          
+          if (!user) {
+              showAlert("Auth Error: Please login.", 'error');
+              return;
+          }
+
+          const fileName = `cv-${Date.now()}.pdf`;
+          
+          // 1. Upload to Storage
+          const { error: uploadError } = await supabase.storage
+              .from('project-assets')
+              .upload(fileName, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+              .from('project-assets')
+              .getPublicUrl(fileName);
+
+          // 2. Update Profile
+          // We assume the user has a profile. If not, this might fail, but checking user.id is safe.
+          const { error: dbError } = await supabase
+              .from('profiles')
+              .update({ cv_url: publicUrl })
+              .eq('id', user.id);
+          
+          if (dbError) throw dbError;
+
+          showAlert("CV Updated Successfully!", 'success');
+          setIsCvModalOpen(false);
+          await refreshProjects(); // Refreshes context including Profile
+
+      } catch (err: any) {
+          console.error("CV Upload Error:", err);
+          showAlert(`Upload failed: ${err.message}`, 'error');
+      }
+  };
 
   // --- AUTH CHECK ON MOUNT ---
   React.useEffect(() => {
@@ -370,12 +423,20 @@ const Admin: React.FC = () => {
                     <h2 className="text-3xl font-heading font-black">PROJECT DATABASE</h2>
                     <p className="text-gray-500 text-sm mt-1">Manage portfolio items and case studies.</p>
                 </div>
-                <button 
-                onClick={openAddModal}
-                className="flex items-center gap-2 bg-dark text-white px-6 py-3 rounded text-sm font-bold hover:bg-primary transition-colors shadow-lg group"
-                >
-                    <Plus size={16} className="group-hover:rotate-90 transition-transform" /> ADD NEW MISSION
-                </button>
+                <div className="flex gap-3">
+                     <button 
+                        onClick={() => setIsCvModalOpen(true)}
+                        className="flex items-center gap-2 bg-white text-dark border border-gray-300 px-6 py-3 rounded text-sm font-bold hover:bg-gray-100 transition-colors shadow-sm"
+                     >
+                        <FileText size={16} /> UPDATE CV
+                     </button>
+                     <button 
+                        onClick={openAddModal}
+                        className="flex items-center gap-2 bg-dark text-white px-6 py-3 rounded text-sm font-bold hover:bg-primary transition-colors shadow-lg group"
+                     >
+                        <Plus size={16} className="group-hover:rotate-90 transition-transform" /> ADD NEW MISSION
+                     </button>
+                </div>
             </div>
             
             {/* Existing Projects List - READ ONLY VIEW */}
@@ -691,6 +752,42 @@ const Admin: React.FC = () => {
                         <Save size={16} /> {editingId ? 'Update Mission' : 'Save Mission'}
                     </button>
                 </div>
+            </div>
+        </div>
+      )}
+
+      {/* --- CV UPLOAD MODAL --- */}
+      {isCvModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-dark/80 backdrop-blur-sm" onClick={() => setIsCvModalOpen(false)}></div>
+            <div className="bg-white w-full max-w-md rounded-xl shadow-2xl relative z-10 p-8 animate-reveal-up text-center">
+                <h3 className="font-heading font-black text-xl mb-2 text-dark">UPDATE RESUME (CV)</h3>
+                <p className="text-gray-500 text-xs mb-6">Upload a new PDF file. This will replace the current download link.</p>
+                
+                <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 cursor-pointer hover:border-primary hover:bg-red-50 transition-all group mb-6"
+                    onClick={() => document.getElementById('cv-upload-input')?.click()}
+                >
+                    <Upload className="mx-auto text-gray-400 group-hover:text-primary mb-3" size={32} />
+                    <span className="text-sm font-bold text-gray-600 group-hover:text-primary">Click to select PDF</span>
+                    <input 
+                        id="cv-upload-input" 
+                        type="file" 
+                        accept="application/pdf" 
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleCvUpload(file);
+                        }}
+                    />
+                </div>
+
+                <button 
+                    onClick={() => setIsCvModalOpen(false)}
+                    className="text-xs font-bold text-gray-400 hover:text-dark uppercase tracking-widest"
+                >
+                    Cancel
+                </button>
             </div>
         </div>
       )}

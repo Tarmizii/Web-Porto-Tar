@@ -62,7 +62,11 @@ const Hero: React.FC = () => {
             {/* CTA - Start Game */}
             <div className={`transform transition-all duration-1000 delay-500 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <a 
-                href="#portfolio"
+                href="#about"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="group relative inline-flex items-center justify-center px-10 py-5 bg-dark text-white font-heading font-bold text-lg tracking-wider uppercase overflow-hidden btn-game shadow-[4px_4px_0px_0px_rgba(250,92,92,1)] hover:shadow-[2px_2px_0px_0px_rgba(250,92,92,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
               >
                  <span className="relative z-10 flex items-center gap-2">

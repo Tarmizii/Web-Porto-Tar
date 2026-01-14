@@ -17,6 +17,7 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string | null
+          cv_url: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -25,6 +26,7 @@ export type Database = {
           full_name?: string | null
           id: string
           updated_at?: string | null
+          cv_url?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -33,6 +35,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          cv_url?: string | null
         }
         Relationships: [
           {
@@ -54,6 +57,8 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          category: string | null
+          details: Json | null
         }
         Insert: {
           created_at?: string
@@ -64,6 +69,8 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          category?: string | null
+          details?: Json | null
         }
         Update: {
           created_at?: string
@@ -74,6 +81,8 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          category?: string | null
+          details?: Json | null
         }
         Relationships: [
           {

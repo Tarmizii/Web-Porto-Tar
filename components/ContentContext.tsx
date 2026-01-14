@@ -7,6 +7,7 @@ interface ContentContextType {
   projects: Project[];
   services: Service[];
   contactInfo: typeof DEFAULT_CONTACT;
+  cvUrl: string;
   loading: boolean;
   refreshProjects: () => Promise<void>;
   updateServices: (services: Service[]) => void;
@@ -23,22 +24,24 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [contactInfo, setContactInfo] = useState(DEFAULT_CONTACT);
   const [loading, setLoading] = useState(true);
 
-  const fetchProjects = async () => {
+  const [cvUrl, setCvUrl] = useState<string>('');
+
+  const fetchContent = async () => {
     try {
-      const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching projects:', error);
-        return;
-      }
+      setLoading(true);
       
-      if (data && data.length > 0) {
-        const mappedProjects: Project[] = data.map((row: any) => ({
+      // 1. Fetch Projects
+      const { data: projectData, error: projectError } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+      
+      if (projectError) console.error('Error fetching projects:', projectError);
+      
+      if (projectData && projectData.length > 0) {
+        const mappedProjects: Project[] = projectData.map((row: any) => ({
             id: row.id,
             title: row.title,
             category: row.category || 'UI/UX Design',
             thumbnail: row.image_url || '',
             shortDescription: row.description || '',
-            // Map JSONB fields
             role: row.details?.role || '',
             tools: row.details?.tools || [],
             fullDescription: row.details?.fullDescription || '',
@@ -51,15 +54,27 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
         }));
         setProjects(mappedProjects);
       }
+
+      // 2. Fetch Profile (CV)
+      const { data: profileData, error: profileError } = await supabase.from('profiles').select('cv_url').limit(1).single();
+      
+      if (profileError && profileError.code !== 'PGRST116') { // Ignore no rows error
+         console.error('Error fetching profile:', profileError);
+      }
+      
+      if (profileData) {
+          setCvUrl(profileData.cv_url || '');
+      }
+
     } catch (err) {
-      console.error('Unexpected error fetching projects:', err);
+      console.error('Unexpected error fetching content:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProjects();
+    fetchContent();
     
     // Load other settings from localStorage
     const savedServices = localStorage.getItem('cms_services');
@@ -76,7 +91,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [services, contactInfo]);
 
   const refreshProjects = async () => {
-      await fetchProjects();
+      await fetchContent();
   };
 
   const updateServices = (newServices: Service[]) => setServices(newServices);
@@ -93,6 +108,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
       projects, 
       services, 
       contactInfo, 
+      cvUrl,
       loading,
       refreshProjects,
       updateProjects, 
