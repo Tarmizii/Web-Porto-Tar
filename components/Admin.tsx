@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useContent } from './ContentContext';
-import { ArrowLeft, Plus, Trash2, Layout, Terminal, Image as ImageIcon, Briefcase, Wrench, Upload, Link as LinkIcon, FileText, Target, Layers, Trophy, X, Save, User, Lock, AlertTriangle, Loader2, AlertCircle, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Layout, Terminal, Image as ImageIcon, Briefcase, Wrench, Upload, Link as LinkIcon, FileText, Target, Layers, Trophy, X, Save, User, Lock, AlertTriangle, Loader2, AlertCircle, Pencil, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Project } from '../types';
 
@@ -21,6 +21,54 @@ const Admin: React.FC = () => {
   const [isCvModalOpen, setIsCvModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      const { supabase } = await import('../lib/supabaseClient');
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+      navigate('/');
+    } catch (error) {
+      console.error("Logout error:", error);
+      navigate('/');
+    }
+  };
+
+  // --- SESSION TIMEOUT ---
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let timeout: NodeJS.Timeout;
+    const TIMEOUT_DURATION = 10 * 60 * 1000; // 10 minutes
+
+    const doLogout = async () => {
+        await handleLogout();
+        // Since we can't show alert after unmount/nav, we assume user is kicked to home.
+        // Optionally store a flag in localStorage to show alert on home page, but simple redirect is standard.
+        alert("Session Expired: You have been logged out due to inactivity.");
+    };
+
+    const resetTimer = () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(doLogout, TIMEOUT_DURATION);
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keypress', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+
+    resetTimer(); // Start initial timer
+
+    return () => {
+        clearTimeout(timeout);
+        window.removeEventListener('mousemove', resetTimer);
+        window.removeEventListener('keypress', resetTimer);
+        window.removeEventListener('click', resetTimer);
+        window.removeEventListener('scroll', resetTimer);
+    };
+  }, [isAuthenticated]);
 
   // Form State
   const initialProjectState: Project = {
@@ -407,8 +455,8 @@ const Admin: React.FC = () => {
              <h1 className="font-heading font-bold text-lg hidden md:block">CONTENT MANAGEMENT</h1>
           </div>
           <div className="flex items-center gap-4">
-             <button onClick={() => navigate('/')} className="flex items-center gap-2 bg-white text-dark px-4 py-2 rounded text-xs font-bold hover:bg-gray-200 transition-colors">
-               <ArrowLeft size={14} /> EXIT
+             <button onClick={() => setIsExitModalOpen(true)} className="flex items-center gap-2 bg-white text-dark px-4 py-2 rounded text-xs font-bold hover:bg-gray-200 transition-colors">
+               <LogOut size={14} /> LOGOUT
              </button>
           </div>
         </div>
@@ -816,6 +864,36 @@ const Admin: React.FC = () => {
                         className="px-5 py-2 rounded bg-red-500 text-white font-bold text-xs uppercase hover:bg-red-600 shadow-md"
                       >
                           Delete
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- EXIT CONFIRMATION MODAL --- */}
+      {isExitModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-dark/90 backdrop-blur-sm" onClick={() => setIsExitModalOpen(false)}></div>
+              <div className="bg-white rounded-lg p-8 max-w-sm w-full relative z-10 text-center shadow-2xl border-t-4 border-gray-500 animate-reveal-up">
+                  <div className="w-16 h-16 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <LogOut size={32} />
+                  </div>
+                  <h3 className="font-heading font-black text-xl mb-2 text-dark">CONFIRM LOGOUT</h3>
+                  <p className="text-gray-500 text-sm mb-6">
+                      Are you sure you want to log out from the admin session?
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                      <button 
+                        onClick={() => setIsExitModalOpen(false)}
+                        className="px-5 py-2 rounded border border-gray-300 text-gray-600 font-bold text-xs uppercase hover:bg-gray-50"
+                      >
+                          Cancel
+                      </button>
+                      <button 
+                        onClick={handleLogout}
+                        className="px-5 py-2 rounded bg-dark text-white font-bold text-xs uppercase hover:bg-gray-800 shadow-md"
+                      >
+                          Logout
                       </button>
                   </div>
               </div>
