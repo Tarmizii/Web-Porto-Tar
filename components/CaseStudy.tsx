@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useContent } from './ContentContext';
 import { ArrowLeft, ExternalLink, Database, Target, Layers, Trophy } from 'lucide-react';
 import Contact from './Contact';
+import SEO from './SEO';
 
 const CaseStudy: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,6 +84,15 @@ const CaseStudy: React.FC = () => {
           </div>
         </div>
       </nav>
+
+      <SEO 
+        title={project.title} 
+        description={project.shortDescription}
+        image={project.thumbnail}
+        keywords={`${project.category}, ${project.tools.join(', ')}, case study, portfolio`}
+        url={`https://tarmizi.design/#/project/${project.id}`}
+        type="article"
+      />
 
       <main className="pt-24 pb-20">
         

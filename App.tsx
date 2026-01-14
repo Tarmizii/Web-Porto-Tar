@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { MessageCircle } from 'lucide-react';
 import { ContentProvider } from './components/ContentContext';
+import SEO from './components/SEO';
 import Hero from './components/Hero';
 import About from './components/About';
 import Services from './components/Services';
@@ -106,16 +108,19 @@ const ScrollToTop = () => {
 const App: React.FC = () => {
   return (
     <ContentProvider>
-      <Router>
-        <ScrollToTop />
-        <div className="font-sans text-dark antialiased bg-white">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/project/:id" element={<CaseStudy />} />
-            <Route path="/admin" element={<Admin />} />
-          </Routes>
-        </div>
-      </Router>
+      <HelmetProvider>
+        <Router>
+          <SEO />
+          <ScrollToTop />
+          <div className="font-sans text-dark antialiased bg-white">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/project/:id" element={<CaseStudy />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </div>
+        </Router>
+      </HelmetProvider>
     </ContentProvider>
   );
 };
